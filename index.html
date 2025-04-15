@@ -452,8 +452,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 .filter-input::placeholder {
-    color: #999;
-    font-size: 15px;
+    color: transparent;
 }
 
 .sort-icon {
@@ -1204,12 +1203,9 @@ input:focus, select:focus, textarea:focus {
 
     // Open task form modal
     addButton.addEventListener("click", () => {
+        selectedTaskIndex = -1; // Reset selected task index
+        resetForm(); // Reset form fields
         modal.style.display = "flex";
-        // Hide time picker and overlay when opening modal
-        const timePickerPopup = document.getElementById('timePickerPopup');
-        const timeOverlay = document.getElementById('timeOverlay');
-        if (timePickerPopup) timePickerPopup.style.display = 'none';
-        if (timeOverlay) timeOverlay.style.display = 'none';
     });
 
     // Close task form modal
@@ -1510,6 +1506,73 @@ input:focus, select:focus, textarea:focus {
         return `${day}/${month}/${year}`;
     }
 
+    // Add click handlers for row selection and deselection
+    function setupRowSelection() {
+        document.querySelectorAll('.data-row:not(.data-header .data-row):not(.filter-row .data-row)').forEach(row => {
+            row.addEventListener('click', () => {
+                document.querySelectorAll('.data-row').forEach(r => r.classList.remove('selected'));
+                row.classList.add('selected');
+                selectedTaskIndex = parseInt(row.dataset.index);
+            });
+        });
+
+        // Add click handler to deselect when clicking outside
+        document.addEventListener('click', (e) => {
+            const clickedElement = e.target;
+            const isDataRow = clickedElement.closest('.data-row:not(.data-header .data-row):not(.filter-row .data-row)');
+            const isModal = clickedElement.closest('.modal');
+            const isCalendar = clickedElement.closest('.calendar-popup') || clickedElement.closest('.calendar-input');
+            const isTimePicker = clickedElement.closest('.time-picker-popup') || clickedElement.closest('.time-input');
+            
+            // Only deselect if clicking outside of data rows and not in any modal/popup
+            if (!isDataRow && !isModal && !isCalendar && !isTimePicker) {
+                document.querySelectorAll('.data-row').forEach(r => r.classList.remove('selected'));
+                selectedTaskIndex = -1;
+            }
+        });
+    }
+
+    // Filter functionality
+    function setupFilters() {
+        const filterInputs = document.querySelectorAll('.filter-input');
+        
+        filterInputs.forEach((input, index) => {
+            input.addEventListener('input', () => {
+                const searchTerm = input.value.toLowerCase();
+                const rows = document.querySelectorAll('.data-content .data-row');
+                
+                rows.forEach(row => {
+                    const cells = row.querySelectorAll('.data-cell');
+                    const cellText = cells[index].textContent.toLowerCase();
+                    
+                    if (cellText.startsWith(searchTerm)) {
+                        row.style.display = '';
+                    } else {
+                        row.style.display = 'none';
+                    }
+                });
+                
+                // Show/hide "No data" message
+                const visibleRows = document.querySelectorAll('.data-content .data-row[style=""]').length;
+                const noDataMessage = document.querySelector('.no-data');
+                
+                if (visibleRows === 0) {
+                    if (!noDataMessage) {
+                        const noData = document.createElement('div');
+                        noData.className = 'no-data';
+                        noData.textContent = 'No data';
+                        document.querySelector('.data-content').appendChild(noData);
+                    }
+                } else {
+                    if (noDataMessage) {
+                        noDataMessage.remove();
+                    }
+                }
+            });
+        });
+    }
+
+    // Call setupFilters after rendering tasks
     function renderTasks() {
         const container = document.getElementById('taskContainer');
         let html = `<div class="data-container">
@@ -1531,18 +1594,18 @@ input:focus, select:focus, textarea:focus {
             </div>
             <div class="filter-row">
                 <div class="data-row">
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Task Type"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Execution Type"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Created By"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Task Description"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Priority"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Allocated To"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Category"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Day Of Month"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Time"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Due After"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Due Unit"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Completion Criteria"></div>
+                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Task Type"></div>
+                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Execution Type"></div>
+                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Created By"></div>
+                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Description"></div>
+                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Priority"></div>
+                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Allocated To"></div>
+                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Category"></div>
+                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Date"></div>
+                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Time"></div>
+                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Due After"></div>
+                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Due Unit"></div>
+                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Completion"></div>
                 </div>
             </div>
             <div class="data-content">`;
@@ -1576,161 +1639,116 @@ input:focus, select:focus, textarea:focus {
         
         container.innerHTML = html;
 
-        // Add click handlers for row selection
-        document.querySelectorAll('.data-row:not(.data-header .data-row):not(.filter-row .data-row)').forEach(row => {
-            row.addEventListener('click', () => {
-                document.querySelectorAll('.data-row').forEach(r => r.classList.remove('selected'));
-                row.classList.add('selected');
-                selectedTaskIndex = parseInt(row.dataset.index);
-            });
-        });
-
-        // Add filter functionality
-        document.querySelectorAll('.filter-input').forEach((input, index) => {
-            input.addEventListener('input', (e) => {
-                filterTasks();
-            });
-        });
-    }
-
-    function mapColumnToProperty(column) {
-        const map = {
-            'task type': 'taskType',
-            'execution type': 'executionType',
-            'created by': 'createdBy',
-            'task description': 'description',
-            'priority': 'priority',
-            'assign to': 'assignTo',
-            'category': 'category',
-            'day of month': 'dayOfMonth',
-            'time': 'time'
-        };
-        return map[column.toLowerCase()] || column.toLowerCase();
-    }
-
-    function filterTasks() {
-        const filters = Array.from(document.querySelectorAll('.filter-input')).map(input => ({
-            value: input.value.toLowerCase(),
-            column: input.placeholder.toLowerCase()
-        }));
-
-        const filteredData = taskData.filter(task => {
-            return filters.every(filter => {
-                let value = task[mapColumnToProperty(filter.column)];
-                
-                // Handle date formatting for dayOfMonth
-                if (filter.column === 'day of month' && value) {
-                    value = formatDate(value);
-                }
-                
-                // Convert to string and handle null/undefined
-                value = (value || '').toString().toLowerCase();
-                
-                // Check if value starts with filter (case-insensitive)
-                return value.startsWith(filter.value);
-            });
-        });
-
-        renderFilteredTasks(filteredData);
-    }
-
-    function renderFilteredTasks(filteredData) {
-        const container = document.querySelector('.data-content');
-        if (!container) return;
-
-        let html = '';
-        if (filteredData.length === 0) {
-            html = '<div class="no-data">No data</div>';
-        } else {
-            filteredData.forEach(task => {
-                html += `
-                    <div class="data-row">
-                        <div class="data-cell">${task.taskType || ''}</div>
-                        <div class="data-cell">${task.executionType || ''}</div>
-                        <div class="data-cell">${task.createdBy || ''}</div>
-                        <div class="data-cell">${task.description || ''}</div>
-                        <div class="data-cell">
-                            <span class="priority-tag priority-${task.priority?.toLowerCase()}">${task.priority || ''}</span>
-                        </div>
-                        <div class="data-cell">${task.assignTo || ''}</div>
-                        <div class="data-cell">${task.category || ''}</div>
-                        <div class="data-cell">${formatDate(task.dayOfMonth)}</div>
-                        <div class="data-cell">${task.time || ''}</div>
-                        <div class="data-cell">${task.dueAfter?.value || ''}</div>
-                        <div class="data-cell">${task.dueAfter?.unit || 'Days'}</div>
-                        <div class="data-cell">${task.completeTaskWhen || ''}</div>
-                    </div>
-                `;
-            });
-        }
-        container.innerHTML = html;
-    }
-
-    function resetForm() {
-        document.getElementById('taskType').value = '';
-        document.getElementById('executionType').value = '';
-        document.getElementById('dayOfMonth').value = '';
-        document.getElementById('createdBy').value = '';
-        document.getElementById('assignTo').value = '';
-        document.getElementById('description').value = '';
-        document.getElementById('category').value = '';
-        document.getElementById('dueAfterValue').value = '';
-        document.getElementById('dueAfterUnit').value = 'Days';
-        document.getElementById('time').value = '';
-        document.getElementById('completeTaskWhen').value = '';
-        document.querySelector('input[name="priority"][value="High"]').checked = true;
-        savedReminders = [];
-        tempReminders = [];
-    }
-
-    // Update the Modify button click handler
-    document.querySelectorAll('.action-button')[1].addEventListener("click", () => {
-        if (selectedTaskIndex === -1) {
-            alert('Please select a task to modify');
-            return;
-        }
-        const task = taskData[selectedTaskIndex];
-        fillFormWithTask(task);
-        modal.style.display = "flex";
-    });
-
-    // Update the Delete button click handler
-    document.querySelectorAll('.action-button')[2].addEventListener("click", () => {
-        if (selectedTaskIndex === -1) {
-            alert('Please select a task to delete');
-            return;
-        }
+        // Setup row selection after rendering
+        setupRowSelection();
         
-        // Show confirmation dialog
-        if (confirm('Are you sure you want to delete this task?')) {
-            // Remove the selected task
-            taskData.splice(selectedTaskIndex, 1);
-            selectedTaskIndex = -1;
-            
-            // Re-render the tasks
-            renderTasks();
-        }
-    });
-
-    // Add this function to fill the form with task data
-    function fillFormWithTask(task) {
-        document.getElementById('taskType').value = task.taskType;
-        document.getElementById('executionType').value = task.executionType;
-        document.getElementById('dayOfMonth').value = task.dayOfMonth;
-        document.getElementById('createdBy').value = task.createdBy;
-        document.getElementById('assignTo').value = task.assignTo;
-        document.getElementById('description').value = task.description;
-        document.getElementById('category').value = task.category;
-        document.getElementById('dueAfterValue').value = task.dueAfter?.value || '';
-        document.getElementById('dueAfterUnit').value = task.dueAfter?.unit || 'Days';
-        document.querySelector(`input[name="priority"][value="${task.priority}"]`).checked = true;
-        document.getElementById('time').value = task.time;
-        document.getElementById('completeTaskWhen').value = task.completeTaskWhen;
-        savedReminders = [...task.reminders];
+        // Setup filters after rendering
+        setupFilters();
     }
 
-    // Calendar functionality
     document.addEventListener('DOMContentLoaded', function() {
+        // Get action buttons
+        const addButton = document.querySelector('.action-button:nth-child(1)');
+        const modifyButton = document.querySelector('.action-button:nth-child(2)');
+        const deleteButton = document.querySelector('.action-button:nth-child(3)');
+        const closeButton = document.querySelector('.action-button:nth-child(4)');
+
+        // Add task button functionality
+        addButton.addEventListener('click', () => {
+            selectedTaskIndex = -1; // Reset selected task index
+            resetForm(); // Reset form fields
+            modal.style.display = "flex";
+        });
+
+        // Modify task button functionality
+        modifyButton.addEventListener('click', () => {
+            if (selectedTaskIndex === -1) {
+                alert('Please select a task to modify');
+                return;
+            }
+            
+            const task = taskData[selectedTaskIndex];
+            
+            // Fill form with selected task data
+            document.getElementById('taskType').value = task.taskType;
+            document.getElementById('executionType').value = task.executionType;
+            document.getElementById('dayOfMonth').value = task.dayOfMonth;
+            document.getElementById('createdBy').value = task.createdBy;
+            document.getElementById('assignTo').value = task.assignTo;
+            document.getElementById('description').value = task.description;
+            document.getElementById('category').value = task.category;
+            document.getElementById('dueAfterValue').value = task.dueAfter?.value || '';
+            document.getElementById('dueAfterUnit').value = task.dueAfter?.unit || 'Days';
+            document.querySelector(`input[name="priority"][value="${task.priority}"]`).checked = true;
+            document.getElementById('time').value = task.time;
+            document.getElementById('completeTaskWhen').value = task.completeTaskWhen;
+            
+            // Update time display
+            if (task.time) {
+                const [hours, minutes] = task.time.split(':');
+                const hour = parseInt(hours);
+                const ampm = hour >= 12 ? 'PM' : 'AM';
+                const displayHour = hour % 12 || 12;
+                document.getElementById('selectedTime').textContent = 
+                    `${displayHour.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+            }
+            
+            // Update date display
+            if (task.dayOfMonth) {
+                const date = new Date(task.dayOfMonth);
+                const day = date.getDate().toString().padStart(2, '0');
+                const month = (date.getMonth() + 1).toString().padStart(2, '0');
+                const year = date.getFullYear();
+                document.getElementById('selectedDate').textContent = `${day}/${month}/${year}`;
+            }
+            
+            // Set reminders
+            savedReminders = [...(task.reminders || [])];
+            
+            // Show modal
+            modal.style.display = "flex";
+        });
+
+        // Delete task button functionality
+        deleteButton.addEventListener('click', () => {
+            if (selectedTaskIndex === -1) {
+                alert('Please select a task to delete');
+                return;
+            }
+            
+            if (confirm('Are you sure you want to delete this task?')) {
+                taskData.splice(selectedTaskIndex, 1);
+                selectedTaskIndex = -1;
+                renderTasks();
+            }
+        });
+
+        // Close button functionality
+        closeButton.addEventListener('click', () => {
+            selectedTaskIndex = -1;
+            closeModal();
+        });
+
+        // Function to reset form fields
+        function resetForm() {
+            document.getElementById('taskType').value = '';
+            document.getElementById('executionType').value = '';
+            document.getElementById('dayOfMonth').value = '';
+            document.getElementById('createdBy').value = '';
+            document.getElementById('assignTo').value = '';
+            document.getElementById('description').value = '';
+            document.getElementById('category').value = '';
+            document.getElementById('dueAfterValue').value = '';
+            document.getElementById('dueAfterUnit').value = 'Days';
+            document.querySelector('input[name="priority"][value="High"]').checked = true;
+            document.getElementById('time').value = '';
+            document.getElementById('completeTaskWhen').value = '';
+            document.getElementById('selectedTime').textContent = 'Enter time';
+            document.getElementById('selectedDate').textContent = 'Select date';
+            savedReminders = [];
+        }
+
+        // Calendar functionality
         const calendarTrigger = document.getElementById('calendarTrigger');
         const calendarPopup = document.getElementById('calendarPopup');
         const monthSelect = document.getElementById('monthSelect');
@@ -1738,94 +1756,110 @@ input:focus, select:focus, textarea:focus {
         const prevMonthBtn = document.getElementById('prevMonth');
         const nextMonthBtn = document.getElementById('nextMonth');
         const calendarGrid = document.getElementById('calendarGrid');
-        const dateInput = document.getElementById('dayOfMonth');
         const selectedDateSpan = document.getElementById('selectedDate');
+        const hiddenDateInput = document.getElementById('dayOfMonth');
 
-        let currentDate = new Date();
-        let selectedDate = null;
-
-        // Initialize year select
-        const currentYear = currentDate.getFullYear();
-        for (let year = currentYear - 10; year <= currentYear + 10; year++) {
-            const option = document.createElement('option');
-            option.value = year;
-            option.textContent = year;
-            yearSelect.appendChild(option);
+        // Initialize calendar
+        function initCalendar() {
+            const currentDate = new Date();
+            const currentYear = currentDate.getFullYear();
+            
+            // Populate year select
+            for (let year = currentYear - 5; year <= currentYear + 5; year++) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                if (year === currentYear) option.selected = true;
+                yearSelect.appendChild(option);
+            }
+            
+            // Set current month
+            monthSelect.value = currentDate.getMonth();
+            
+            updateCalendar();
         }
-        yearSelect.value = currentYear;
-        monthSelect.value = currentDate.getMonth();
 
         function updateCalendar() {
             const year = parseInt(yearSelect.value);
             const month = parseInt(monthSelect.value);
             const firstDay = new Date(year, month, 1);
             const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
             const startingDay = firstDay.getDay();
             
-            // Clear existing calendar days
-            const dayHeaders = calendarGrid.querySelectorAll('.calendar-day-header');
-            calendarGrid.innerHTML = '';
-            dayHeaders.forEach(header => calendarGrid.appendChild(header));
-
-            // Add days from previous month
-            const prevMonthLastDay = new Date(year, month, 0).getDate();
-            for (let i = startingDay - 1; i >= 0; i--) {
-                const dayDiv = document.createElement('div');
-                dayDiv.className = 'calendar-day other-month';
-                dayDiv.textContent = prevMonthLastDay - i;
-                calendarGrid.appendChild(dayDiv);
+            // Clear existing days
+            while (calendarGrid.children.length > 7) {
+                calendarGrid.removeChild(calendarGrid.lastChild);
             }
-
-            // Add days of current month
-            for (let day = 1; day <= lastDay.getDate(); day++) {
-                const dayDiv = document.createElement('div');
-                dayDiv.className = 'calendar-day';
-                dayDiv.textContent = day;
-
-                const currentDateStr = `${year}-${(month + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}`;
+            
+            // Add empty cells for days before the first day of the month
+            for (let i = 0; i < startingDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'calendar-day other-month';
+                calendarGrid.appendChild(emptyCell);
+            }
+            
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'calendar-day';
+                dayCell.textContent = day;
                 
-                if (selectedDate === currentDateStr) {
-                    dayDiv.classList.add('selected');
-                }
-
+                // Check if this is today
                 const today = new Date();
-                if (year === today.getFullYear() && month === today.getMonth() && day === today.getDate()) {
-                    dayDiv.classList.add('today');
+                if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                    dayCell.classList.add('today');
                 }
-
-                dayDiv.addEventListener('click', () => {
-                    dateInput.value = currentDateStr;
-                    selectedDate = currentDateStr;
-                    selectedDateSpan.textContent = formatDate(currentDateStr);
+                
+                // Check if this is the selected date
+                if (hiddenDateInput.value) {
+                    const selectedDate = new Date(hiddenDateInput.value);
+                    if (day === selectedDate.getDate() && month === selectedDate.getMonth() && year === selectedDate.getFullYear()) {
+                        dayCell.classList.add('selected');
+                    }
+                }
+                
+                dayCell.addEventListener('click', () => {
+                    // Remove selected class from all days
+                    document.querySelectorAll('.calendar-day').forEach(cell => {
+                        cell.classList.remove('selected');
+                    });
+                    
+                    // Add selected class to clicked day
+                    dayCell.classList.add('selected');
+                    
+                    // Update selected date
+                    const selectedDate = new Date(year, month, day);
+                    hiddenDateInput.value = selectedDate.toISOString().split('T')[0];
+                    selectedDateSpan.textContent = `${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/${year}`;
+                    
+                    // Hide calendar popup
                     calendarPopup.style.display = 'none';
-                    updateCalendar();
                 });
-
-                calendarGrid.appendChild(dayDiv);
-            }
-
-            // Add days from next month
-            const remainingDays = 42 - (startingDay + lastDay.getDate());
-            for (let day = 1; day <= remainingDays; day++) {
-                const dayDiv = document.createElement('div');
-                dayDiv.className = 'calendar-day other-month';
-                dayDiv.textContent = day;
-                calendarGrid.appendChild(dayDiv);
+                
+                calendarGrid.appendChild(dayCell);
             }
         }
 
-        calendarTrigger.addEventListener('click', () => {
+        // Show/hide calendar popup
+        calendarTrigger.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
             calendarPopup.style.display = calendarPopup.style.display === 'none' ? 'block' : 'none';
         });
 
+        // Hide calendar when clicking outside
         document.addEventListener('click', (e) => {
-            if (!calendarPopup.contains(e.target) && !calendarTrigger.contains(e.target)) {
+            if (!calendarTrigger.contains(e.target) && !calendarPopup.contains(e.target)) {
                 calendarPopup.style.display = 'none';
             }
         });
 
+        // Handle month/year changes
         monthSelect.addEventListener('change', updateCalendar);
         yearSelect.addEventListener('change', updateCalendar);
+
+        // Handle prev/next month buttons
         prevMonthBtn.addEventListener('click', () => {
             if (monthSelect.value === '0') {
                 monthSelect.value = '11';
@@ -1846,10 +1880,9 @@ input:focus, select:focus, textarea:focus {
             updateCalendar();
         });
 
-        updateCalendar();
-    });
+        // Initialize calendar
+        initCalendar();
 
-    document.addEventListener('DOMContentLoaded', function() {
         // Time picker functionality
         const timeInput = document.getElementById('timeInput');
         const timePickerPopup = document.getElementById('timePickerPopup');
