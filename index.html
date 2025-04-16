@@ -907,6 +907,19 @@ input:focus, select:focus, textarea:focus {
     justify-content: center;
 }
 
+.custom-select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24"><path fill="black" stroke="black" stroke-width="2" d="M6 9l6 6 6-6"/></svg>') no-repeat right 1rem center;
+  background-size: 20px;
+  padding-right: 3rem;
+  font-size: 14.5px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  height: 40px;
+}
+
 </style>
 </head>
 <body>
@@ -940,12 +953,12 @@ input:focus, select:focus, textarea:focus {
             <div class="form-grid">
                 <div class="form-group full">
                     <label>Task Type</label>
-                    <select id="taskType" style="cursor: pointer;"><option>Select</option></select>
+                    <select id="taskType" style="cursor: pointer;" class="custom-select"><option>Select</option></select>
                 </div>
       
                 <div class="form-group">
                     <label>Create Task When</label>
-                    <select id="executionType" style="cursor: pointer;"><option>Select</option></select>
+                    <select id="executionType" style="cursor: pointer;" class="custom-select"><option>Select</option></select>
                 </div>
 
                 <div class="form-group">
@@ -953,8 +966,8 @@ input:focus, select:focus, textarea:focus {
                     <div class="calendar-wrapper">
                         <input type="date" id="dayOfMonth" style="display: none;">
                         <div class="calendar-input" id="calendarTrigger">
-                            <span id="selectedDate">Select date</span>
-                            <i class="bi bi-calendar"></i>
+                            <span id="selectedDate" style="font-size: 14.5px; margin-left: -4.5px;">Select date</span>
+                            <i class="bi bi-calendar" style="color: #000000; margin-right: 6.5px; font-size: 16px;"></i>
                         </div>
                         <div class="calendar-popup" id="calendarPopup">
                             <div class="calendar-header">
@@ -995,12 +1008,12 @@ input:focus, select:focus, textarea:focus {
       
                 <div class="form-group">
                     <label>Created By</label>
-                    <select id="createdBy" style="cursor: pointer;"><option>Select</option></select>
+                    <select id="createdBy" style="cursor: pointer;" class="custom-select"><option>Select</option></select>
                 </div>
 
                 <div class="form-group">
                     <label>Allocate To</label>
-                    <select id="assignTo" style="cursor: pointer;"><option>Select</option></select>
+                    <select id="assignTo" style="cursor: pointer;" class="custom-select"><option>Select</option></select>
                 </div>
       
                 <div class="form-group tall">
@@ -1010,14 +1023,14 @@ input:focus, select:focus, textarea:focus {
 
                 <div class="form-group">
                     <label>Category</label>
-                    <select id="category" style="cursor: pointer;"><option>Select</option></select>
+                    <select id="category" style="cursor: pointer;" class="custom-select"><option>Select</option></select>
                 </div>
 
                 <div class="form-group">
                     <label>Due After</label>
                     <div style="display: flex; gap: 10px;">
                         <input type="number" id="dueAfterValue" style="width: 300px;" />
-                        <select id="dueAfterUnit" style="width: 111px; cursor: pointer;"><option>Days</option></select>
+                        <select id="dueAfterUnit" style="width: 111px; cursor: pointer;" class="custom-select"><option>Days</option></select>
                     </div>
                 </div>
       
@@ -1102,7 +1115,7 @@ input:focus, select:focus, textarea:focus {
 
                 <div class="form-group full">
                     <label>Complete Task When</label>
-                    <select id="completeTaskWhen" style="cursor: pointer;"><option>Select</option></select>
+                    <select id="completeTaskWhen" style="cursor: pointer;" class="custom-select"><option>Select</option></select>
                 </div>
 
             </div>
@@ -1125,12 +1138,12 @@ input:focus, select:focus, textarea:focus {
         </div>
         <div class="modal-body">
             <div style="display: flex; gap: 10px; margin-bottom: 16px;">
-                <select id="reminderType" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 6px;">
+                <select id="reminderType" style="flex: 1; padding: 6px; border: 1px solid #ccc; border-radius: 6px;" class="custom-select">
                     <option>Email</option>
                     <option>Notification</option>
                 </select>
                 <input id="reminderValue" type="number" value="0" style="width: 80px; border: 1px solid #ccc; border-radius: 6px; padding: 6px;" />
-                <select id="reminderUnit" style="width: 111px; border: 1px solid #ccc; border-radius: 6px; padding: 6px;">
+                <select id="reminderUnit" style="width: 111px; border: 1px solid #ccc; border-radius: 6px; padding: 6px;" class="custom-select">
                     <option>Minutes</option>
                     <option>Hours</option>
                     <option>Days</option>
