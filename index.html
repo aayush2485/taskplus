@@ -433,11 +433,13 @@
     padding: 4px 8px 4px 32px;
     border: none;
     border-radius: 4px;
-    font-size: 15px;
+    font-size: 13px;
     background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" fill="%23999" viewBox="0 0 16 16"><path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z"/></svg>') no-repeat 12px center;
     background-size: 14px;
     transition: all 0.2s ease;
     margin: 0;
+    color: #666;
+    font-weight: 400;
 }
 
 .filter-input:focus {
@@ -452,7 +454,8 @@ input:focus, select:focus, textarea:focus {
 }
 
 .filter-input::placeholder {
-    color: transparent;
+    color: #999;
+    font-weight: 400;
 }
 
 .sort-icon {
@@ -488,21 +491,21 @@ input:focus, select:focus, textarea:focus {
 
 .task-count {
     position: fixed;
-    bottom: 20px;
-    left: 270px;
-    right: 20px;
-    padding: 10px;
-    background: white;
+    bottom: 0;
+    left: 255px;
+    padding: 10px 20px;
     border-top: 1px solid #dee2e6;
-    color: #666;
+    color: #000;
     font-size: 14px;
     z-index: 10;
+    font-weight: normal;
 }
 
 #taskContainer {
-    margin: 90px 20px 20px 270px;
-    height: calc(100vh - 110px);
-    overflow: auto;
+    margin: 90px 20px 40px 270px;
+    height: calc(100vh - 130px);
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 .data-container {
@@ -611,6 +614,40 @@ input:focus, select:focus, textarea:focus {
 /* Add this CSS for selected row */
 .data-row.selected {
     background-color: #E0DDF2;
+}
+
+.data-row.selected .data-cell {
+    border-right: 1px solid #dee2e6;
+    border-bottom: 1px solid #dee2e6;
+    border-top: 1px solid #dee2e6;
+    border-left: 1px solid #dee2e6;
+}
+
+.data-row.selected .data-cell:first-child {
+    border-left: none;
+}
+
+.data-row.selected .data-cell:last-child {
+    border-right: none;
+}
+
+.data-row:hover {
+    background-color: #f8f9fa;
+}
+
+.data-row:hover .data-cell {
+    border-right: 1px solid #dee2e6;
+    border-bottom: 1px solid #dee2e6;
+    border-top: 1px solid #dee2e6;
+    border-left: 1px solid #dee2e6;
+}
+
+.data-row:hover .data-cell:first-child {
+    border-left: none;
+}
+
+.data-row:hover .data-cell:last-child {
+    border-right: none;
 }
 
 .form-group input[type="date"] {
@@ -1167,7 +1204,12 @@ input:focus, select:focus, textarea:focus {
 </div>
 
 <!-- Task Container -->
-<div id="taskContainer" style="margin: 90px 20px 20px 270px;"></div>
+<div id="taskContainer" style="margin: 90px 20px 60px 270px;"></div>
+
+<!-- Task Count Footer -->
+<div class="task-count">
+    Count: <span id="taskCountText">0</span>
+</div>
 
 <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
 <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
@@ -1182,6 +1224,25 @@ input:focus, select:focus, textarea:focus {
     let savedReminders = [];
     let taskData = [];
     let selectedTaskIndex = -1;
+
+    // Function to reset form fields
+    function resetForm() {
+        document.getElementById('taskType').value = '';
+        document.getElementById('executionType').value = '';
+        document.getElementById('dayOfMonth').value = '';
+        document.getElementById('createdBy').value = '';
+        document.getElementById('assignTo').value = '';
+        document.getElementById('description').value = '';
+        document.getElementById('category').value = '';
+        document.getElementById('dueAfterValue').value = '';
+        document.getElementById('dueAfterUnit').value = 'Days';
+        document.querySelector('input[name="priority"][value="High"]').checked = true;
+        document.getElementById('time').value = '';
+        document.getElementById('completeTaskWhen').value = '';
+        document.getElementById('selectedTime').textContent = 'Enter time';
+        document.getElementById('selectedDate').textContent = 'Select date';
+        savedReminders = [];
+    }
 
     // Sample data for dropdowns
     const taskTypes = ['Regular Task', 'Urgent Task', 'Meeting', 'Follow-up'];
@@ -1505,6 +1566,11 @@ input:focus, select:focus, textarea:focus {
         // Close modal and reset form
         closeModal();
         resetForm();
+
+        // Update task count
+        const taskCount = taskData.length;
+        const taskCountText = document.getElementById('taskCountText');
+        taskCountText.textContent = taskCount;
     }
 
     function formatDate(dateString) {
@@ -1549,43 +1615,60 @@ input:focus, select:focus, textarea:focus {
     function setupFilters() {
         const filterInputs = document.querySelectorAll('.filter-input');
         
-        filterInputs.forEach((input, index) => {
-            input.addEventListener('input', () => {
-                const searchTerm = input.value.toLowerCase();
-                const rows = document.querySelectorAll('.data-content .data-row');
+        function applyFilters() {
+            const rows = document.querySelectorAll('.data-content .data-row');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const cells = row.querySelectorAll('.data-cell');
+                let shouldShow = true;
                 
-                rows.forEach(row => {
-                    const cells = row.querySelectorAll('.data-cell');
+                // Check each filter input
+                filterInputs.forEach((input, index) => {
+                    const searchTerm = input.value.toLowerCase();
                     const cellText = cells[index].textContent.toLowerCase();
                     
-                    if (cellText.startsWith(searchTerm)) {
-                        row.style.display = '';
-                    } else {
-                        row.style.display = 'none';
+                    if (searchTerm && !cellText.startsWith(searchTerm)) {
+                        shouldShow = false;
                     }
                 });
                 
-                // Show/hide "No data" message
-                const visibleRows = document.querySelectorAll('.data-content .data-row[style=""]').length;
-                const noDataMessage = document.querySelector('.no-data');
-                
-                if (visibleRows === 0) {
-                    if (!noDataMessage) {
-                        const noData = document.createElement('div');
-                        noData.className = 'no-data';
-                        noData.textContent = 'No data';
-                        document.querySelector('.data-content').appendChild(noData);
-                    }
+                if (shouldShow) {
+                    row.style.display = '';
+                    visibleCount++;
                 } else {
-                    if (noDataMessage) {
-                        noDataMessage.remove();
-                    }
+                    row.style.display = 'none';
                 }
             });
+            
+            // Update task count with filtered count
+            const taskCountText = document.getElementById('taskCountText');
+            taskCountText.textContent = visibleCount;
+            
+            // Show/hide "No data" message
+            if (visibleCount === 0) {
+                const noDataMessage = document.querySelector('.no-data');
+                if (!noDataMessage) {
+                    const noData = document.createElement('div');
+                    noData.className = 'no-data';
+                    noData.textContent = 'No data';
+                    document.querySelector('.data-content').appendChild(noData);
+                }
+            } else {
+                const noDataMessage = document.querySelector('.no-data');
+                if (noDataMessage) {
+                    noDataMessage.remove();
+                }
+            }
+        }
+        
+        // Add input event listener to each filter
+        filterInputs.forEach(input => {
+            input.addEventListener('input', applyFilters);
         });
     }
 
-    // Call setupFilters after rendering tasks
+    // Update the renderTasks function to show total count initially
     function renderTasks() {
         const container = document.getElementById('taskContainer');
         let html = `<div class="data-container">
@@ -1607,18 +1690,18 @@ input:focus, select:focus, textarea:focus {
             </div>
             <div class="filter-row">
                 <div class="data-row">
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Task Type"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Execution Type"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Created By"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Description"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Priority"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Allocated To"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Category"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Date"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Time"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Due After"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Due Unit"></div>
-                    <div class="data-cell"><input type="text" class="filter-input" placeholder="Filter Completion"></div>
+                    <div class="data-cell"><input type="text" class="filter-input"></div>
+                    <div class="data-cell"><input type="text" class="filter-input"></div>
+                    <div class="data-cell"><input type="text" class="filter-input"></div>
+                    <div class="data-cell"><input type="text" class="filter-input"></div>
+                    <div class="data-cell"><input type="text" class="filter-input"></div>
+                    <div class="data-cell"><input type="text" class="filter-input"></div>
+                    <div class="data-cell"><input type="text" class="filter-input"></div>
+                    <div class="data-cell"><input type="text" class="filter-input"></div>
+                    <div class="data-cell"><input type="text" class="filter-input"></div>
+                    <div class="data-cell"><input type="text" class="filter-input"></div>
+                    <div class="data-cell"><input type="text" class="filter-input"></div>
+                    <div class="data-cell"><input type="text" class="filter-input"></div>
                 </div>
             </div>
             <div class="data-content">`;
@@ -1652,6 +1735,11 @@ input:focus, select:focus, textarea:focus {
         
         container.innerHTML = html;
 
+        // Update task count with total count initially
+        const taskCount = taskData.length;
+        const taskCountText = document.getElementById('taskCountText');
+        taskCountText.textContent = taskCount;
+
         // Setup row selection after rendering
         setupRowSelection();
         
@@ -1676,7 +1764,7 @@ input:focus, select:focus, textarea:focus {
         // Modify task button functionality
         modifyButton.addEventListener('click', () => {
             if (selectedTaskIndex === -1) {
-                alert('Please select a task to modify');
+                showPopupMessage('Please select a task setup to modify');
                 return;
             }
             
@@ -1725,15 +1813,130 @@ input:focus, select:focus, textarea:focus {
         // Delete task button functionality
         deleteButton.addEventListener('click', () => {
             if (selectedTaskIndex === -1) {
-                alert('Please select a task to delete');
+                showPopupMessage('Please select a task setup to delete');
                 return;
             }
             
-            if (confirm('Are you sure you want to delete this task?')) {
+            // Create confirmation popup
+            const confirmModal = document.createElement('div');
+            confirmModal.style.position = 'fixed';
+            confirmModal.style.top = '50%';
+            confirmModal.style.left = '50%';
+            confirmModal.style.transform = 'translate(-50%, -50%) scale(0.1)';
+            confirmModal.style.backgroundColor = 'white';
+            confirmModal.style.padding = '35px 25px';
+            confirmModal.style.borderRadius = '8px';
+            confirmModal.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+            confirmModal.style.zIndex = '1000';
+            confirmModal.style.display = 'flex';
+            confirmModal.style.flexDirection = 'column';
+            confirmModal.style.alignItems = 'center';
+            confirmModal.style.gap = '25px';
+            confirmModal.style.width = '300px';
+            confirmModal.style.opacity = '0';
+            confirmModal.style.transition = 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+            // Icon
+            const icon = document.createElement('div');
+            icon.innerHTML = '<i class="fas fa-exclamation-triangle" style="color: #ffc107; font-size: 45px;"></i>';
+            
+            // Message
+            const message = document.createElement('div');
+            message.textContent = 'Are you sure you want to delete this task setup?';
+            message.style.color = '#374151';
+            message.style.fontSize = '18px';
+            message.style.textAlign = 'center';
+            message.style.fontWeight = '500';
+            message.style.lineHeight = '1.5';
+            
+            // Buttons container
+            const buttonsContainer = document.createElement('div');
+            buttonsContainer.style.display = 'flex';
+            buttonsContainer.style.gap = '10px';
+            buttonsContainer.style.marginTop = '10px';
+            
+            // Cancel button
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = 'Cancel';
+            cancelBtn.style.padding = '8px 16px';
+            cancelBtn.style.border = '1px solid #ccc';
+            cancelBtn.style.borderRadius = '6px';
+            cancelBtn.style.backgroundColor = 'white';
+            cancelBtn.style.cursor = 'pointer';
+            cancelBtn.style.transition = 'all 0.2s';
+            
+            // Delete button
+            const deleteBtn = document.createElement('button');
+            deleteBtn.textContent = 'Delete';
+            deleteBtn.style.padding = '8px 16px';
+            deleteBtn.style.border = 'none';
+            deleteBtn.style.borderRadius = '6px';
+            deleteBtn.style.backgroundColor = '#dc3545';
+            deleteBtn.style.color = 'white';
+            deleteBtn.style.cursor = 'pointer';
+            deleteBtn.style.transition = 'all 0.2s';
+            
+            buttonsContainer.appendChild(cancelBtn);
+            buttonsContainer.appendChild(deleteBtn);
+            
+            confirmModal.appendChild(icon);
+            confirmModal.appendChild(message);
+            confirmModal.appendChild(buttonsContainer);
+            
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.right = '0';
+            overlay.style.bottom = '0';
+            overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+            overlay.style.zIndex = '999';
+            overlay.style.opacity = '0';
+            overlay.style.transition = 'opacity 0.5s ease-in-out';
+            
+            document.body.appendChild(overlay);
+            document.body.appendChild(confirmModal);
+            
+            // Show animation
+            requestAnimationFrame(() => {
+                confirmModal.style.transform = 'translate(-50%, -50%) scale(1)';
+                confirmModal.style.opacity = '1';
+                overlay.style.opacity = '1';
+            });
+            
+            // Button click handlers
+            cancelBtn.addEventListener('click', () => {
+                confirmModal.style.transform = 'translate(-50%, -50%) scale(0.1)';
+                confirmModal.style.opacity = '0';
+                overlay.style.opacity = '0';
+                
+                setTimeout(() => {
+                    document.body.removeChild(overlay);
+                    document.body.removeChild(confirmModal);
+                }, 500);
+            });
+            
+            deleteBtn.addEventListener('click', () => {
                 taskData.splice(selectedTaskIndex, 1);
                 selectedTaskIndex = -1;
                 renderTasks();
-            }
+                
+                // Update task count
+                const taskCount = taskData.length;
+                const taskCountText = document.getElementById('taskCountText');
+                taskCountText.textContent = taskCount;
+                
+                confirmModal.style.transform = 'translate(-50%, -50%) scale(0.1)';
+                confirmModal.style.opacity = '0';
+                overlay.style.opacity = '0';
+                
+                setTimeout(() => {
+                    document.body.removeChild(overlay);
+                    document.body.removeChild(confirmModal);
+                }, 500);
+                
+                showPopupMessage('Task deleted successfully', 'success');
+            });
         });
 
         // Close button functionality
@@ -2082,6 +2285,103 @@ input:focus, select:focus, textarea:focus {
         tempReminders = [...savedReminders];
         reminderModal.style.display = "flex";
         renderReminders();
+    }
+
+    // Add this new function for showing popup messages
+    function showPopupMessage(message, type = 'error') {
+        const modal = document.createElement('div');
+        modal.style.position = 'fixed';
+        modal.style.top = '50%';
+        modal.style.left = '50%';
+        modal.style.transform = 'translate(-50%, -50%) scale(0.1)';
+        modal.style.backgroundColor = 'white';
+        modal.style.padding = '35px 25px';
+        modal.style.borderRadius = '8px';
+        modal.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
+        modal.style.zIndex = '1000';
+        modal.style.display = 'flex';
+        modal.style.flexDirection = 'column';
+        modal.style.alignItems = 'center';
+        modal.style.gap = '25px';
+        modal.style.width = '300px';
+        modal.style.opacity = '0';
+        modal.style.transition = 'all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+
+        // Icon with animation
+        const icon = document.createElement('div');
+        const iconClass = type === 'error' ? 'fas fa-exclamation-circle' : 'fas fa-check-circle';
+        const iconColor = type === 'error' ? '#ff0000' : '#28a745';
+        icon.innerHTML = `<i class="${iconClass}" style="color: ${iconColor}; font-size: 45px; transform: scale(0); opacity: 0; transition: all 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s;"></i>`;
+        
+        // Message with animation
+        const messageDiv = document.createElement('div');
+        messageDiv.textContent = message;
+        messageDiv.style.color = type === 'error' ? '#ff0000' : '#28a745';
+        messageDiv.style.fontSize = '18px';
+        messageDiv.style.textAlign = 'center';
+        messageDiv.style.fontWeight = '500';
+        messageDiv.style.lineHeight = '1.5';
+        messageDiv.style.opacity = '0';
+        messageDiv.style.transform = 'translateY(10px)';
+        messageDiv.style.transition = 'all 0.5s ease 0.4s';
+
+        modal.appendChild(icon);
+        modal.appendChild(messageDiv);
+
+        const overlay = document.createElement('div');
+        overlay.style.position = 'fixed';
+        overlay.style.top = '0';
+        overlay.style.left = '0';
+        overlay.style.right = '0';
+        overlay.style.bottom = '0';
+        overlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+        overlay.style.zIndex = '999';
+        overlay.style.opacity = '0';
+        overlay.style.transition = 'opacity 0.5s ease-in-out';
+
+        document.body.appendChild(overlay);
+        document.body.appendChild(modal);
+
+        // Trigger animations
+        requestAnimationFrame(() => {
+            modal.style.transform = 'translate(-50%, -50%) scale(1)';
+            modal.style.opacity = '1';
+            overlay.style.opacity = '1';
+            
+            // Animate icon
+            const iconElement = icon.querySelector('i');
+            if (iconElement) {
+                iconElement.style.transform = 'scale(1)';
+                iconElement.style.opacity = '1';
+            }
+            
+            // Animate message
+            messageDiv.style.opacity = '1';
+            messageDiv.style.transform = 'translateY(0)';
+        });
+
+        // Remove with animation
+        setTimeout(() => {
+            modal.style.transform = 'translate(-50%, -50%) scale(0.1)';
+            modal.style.opacity = '0';
+            overlay.style.opacity = '0';
+            
+            // Reverse icon animation
+            const iconElement = icon.querySelector('i');
+            if (iconElement) {
+                iconElement.style.transform = 'scale(0)';
+                iconElement.style.opacity = '0';
+            }
+            
+            // Reverse message animation
+            messageDiv.style.opacity = '0';
+            messageDiv.style.transform = 'translateY(10px)';
+            
+            setTimeout(() => {
+                if (overlay.parentNode) document.body.removeChild(overlay);
+                if (modal.parentNode) document.body.removeChild(modal);
+            }, 500);
+        }, 2500);
     }
 </script>
 
