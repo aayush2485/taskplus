@@ -31,6 +31,7 @@
         padding: 0 16px;
         z-index: 10;
         margin-left: 250px; /* Match sidebar width */
+        width: calc(100% - 250px);
     }
     .header-left {
         display: flex;
@@ -143,6 +144,8 @@
         box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
         display: flex;
         flex-direction: column;
+        max-height: 90vh;
+        overflow-y: auto;
     }
     .modal-header {
         background-color: #E0DDF2;
@@ -190,6 +193,7 @@
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 16px;
+        padding: 10px;
     }
     .form-group {
         display: flex;
@@ -287,9 +291,10 @@
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     max-height: calc(100vh - 140px);
     overflow-y: hidden;
-    overflow-x: hidden;
+    overflow-x: auto;
     -ms-overflow-style: none !important;
     scrollbar-width: none !important;
+    width: 100%;
 }
 
 .data-container:hover {
@@ -322,11 +327,10 @@
 
 .data-row {
     display: grid;
-    grid-template-columns: 150px 150px 150px 200px 100px 150px 150px 150px 100px 100px 100px 150px;
+    grid-template-columns: 250px 250px 250px 400px 180px 250px 250px 250px 180px 180px 180px 300px;
     border-bottom: 1px solid #dee2e6;
-    width: 100%;
-    min-width: 100%;
-    max-width: 100%;
+    min-width: fit-content;
+    position: relative;
 }
 
 .data-header {
@@ -336,7 +340,7 @@
 
 .data-row {
     display: grid;
-    grid-template-columns: 200px 200px 200px 250px 150px 200px 200px 200px 150px 150px 150px 200px;
+    grid-template-columns: 250px 250px 250px 400px 180px 250px 250px 250px 180px 180px 180px 300px;
     border-bottom: 1px solid #dee2e6;
     min-width: fit-content;
 }
@@ -351,6 +355,33 @@
     text-overflow: ellipsis;
     white-space: nowrap;
     font-size: 13px;
+    min-width: 0;
+    position: relative;
+    box-sizing: border-box;
+}
+
+.data-cell:not(:last-child)::after {
+    content: '';
+    position: absolute;
+    right: -2px;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    cursor: col-resize;
+    background-color: transparent;
+    transition: background-color 0.2s;
+}
+
+.data-cell:not(:last-child):hover::after {
+    background-color: #E0DDF2;
+}
+
+.data-cell.resizing {
+    user-select: none;
+}
+
+.data-cell.resizing::after {
+    background-color: #4417DD;
 }
 
 .data-cell:last-child {
@@ -506,6 +537,7 @@ input:focus, select:focus, textarea:focus {
     height: calc(100vh - 130px);
     overflow-x: auto;
     overflow-y: hidden;
+    width: calc(100% - 290px);
 }
 
 .data-container {
@@ -527,7 +559,7 @@ input:focus, select:focus, textarea:focus {
 
 .data-row {
     display: grid;
-    grid-template-columns: 200px 200px 200px 250px 150px 200px 200px 200px 150px 150px 150px 200px;
+    grid-template-columns: 250px 250px 250px 400px 180px 250px 250px 250px 180px 180px 180px 300px;
     border-bottom: 1px solid #dee2e6;
     min-width: fit-content;
 }
@@ -656,6 +688,7 @@ input:focus, select:focus, textarea:focus {
 
 .calendar-wrapper {
     position: relative;
+    width: 100%;
 }
 
 .calendar-input {
@@ -957,6 +990,30 @@ input:focus, select:focus, textarea:focus {
   height: 40px;
 }
 
+/* Add these responsive styles */
+@media screen and (max-width: 1920px) {
+    .data-row {
+        grid-template-columns: 150px 150px 150px 200px 100px 150px 150px 150px 100px 100px 100px 150px;
+    }
+}
+
+@media screen and (max-width: 1600px) {
+    .data-row {
+        grid-template-columns: 130px 130px 130px 180px 90px 130px 130px 130px 90px 90px 90px 130px;
+    }
+}
+
+@media screen and (max-width: 1366px) {
+    .data-row {
+        grid-template-columns: 120px 120px 120px 160px 80px 120px 120px 120px 80px 80px 80px 120px;
+    }
+}
+
+@media screen and (max-width: 1280px) {
+    .data-row {
+        grid-template-columns: 110px 110px 110px 150px 70px 110px 110px 110px 70px 70px 70px 110px;
+    }
+}
 </style>
 </head>
 <body>
@@ -1209,6 +1266,42 @@ input:focus, select:focus, textarea:focus {
 <!-- Task Count Footer -->
 <div class="task-count">
     Count: <span id="taskCountText">0</span>
+</div>
+
+<!-- Add this after the existing calendar popup -->
+<div class="calendar-popup" id="filterCalendarPopup" style="position: fixed; z-index: 1000;">
+    <div class="calendar-header">
+        <div class="month-year-selector">
+            <select class="month-select" id="filterMonthSelect">
+                <option value="0">January</option>
+                <option value="1">February</option>
+                <option value="2">March</option>
+                <option value="3">April</option>
+                <option value="4">May</option>
+                <option value="5">June</option>
+                <option value="6">July</option>
+                <option value="7">August</option>
+                <option value="8">September</option>
+                <option value="9">October</option>
+                <option value="10">November</option>
+                <option value="11">December</option>
+            </select>
+            <select class="year-select" id="filterYearSelect"></select>
+        </div>
+        <div class="calendar-nav">
+            <button class="nav-btn" id="filterPrevMonth"><i class="bi bi-chevron-left"></i></button>
+            <button class="nav-btn" id="filterNextMonth"><i class="bi bi-chevron-right"></i></button>
+        </div>
+    </div>
+    <div class="calendar-grid" id="filterCalendarGrid">
+        <div class="calendar-day-header">Sun</div>
+        <div class="calendar-day-header">Mon</div>
+        <div class="calendar-day-header">Tue</div>
+        <div class="calendar-day-header">Wed</div>
+        <div class="calendar-day-header">Thu</div>
+        <div class="calendar-day-header">Fri</div>
+        <div class="calendar-day-header">Sat</div>
+    </div>
 </div>
 
 <!-- IMPORTANT: DO NOT REMOVE THIS SCRIPT TAG OR THIS VERY COMMENT! -->
@@ -1614,6 +1707,14 @@ input:focus, select:focus, textarea:focus {
     // Filter functionality
     function setupFilters() {
         const filterInputs = document.querySelectorAll('.filter-input');
+        const filterDateInput = document.getElementById('filterDateInput');
+        const filterCalendarPopup = document.getElementById('filterCalendarPopup');
+        const filterMonthSelect = document.getElementById('filterMonthSelect');
+        const filterYearSelect = document.getElementById('filterYearSelect');
+        const filterPrevMonthBtn = document.getElementById('filterPrevMonth');
+        const filterNextMonthBtn = document.getElementById('filterNextMonth');
+        const filterCalendarGrid = document.getElementById('filterCalendarGrid');
+        const calendarIcon = document.querySelector('.calendar-icon');
         
         function applyFilters() {
             const rows = document.querySelectorAll('.data-content .data-row');
@@ -1666,6 +1767,134 @@ input:focus, select:focus, textarea:focus {
         filterInputs.forEach(input => {
             input.addEventListener('input', applyFilters);
         });
+
+        // Initialize filter calendar
+        function initFilterCalendar() {
+            const currentDate = new Date();
+            const currentYear = currentDate.getFullYear();
+            
+            // Populate year select
+            filterYearSelect.innerHTML = '';
+            for (let year = currentYear - 5; year <= currentYear + 5; year++) {
+                const option = document.createElement('option');
+                option.value = year;
+                option.textContent = year;
+                if (year === currentYear) option.selected = true;
+                filterYearSelect.appendChild(option);
+            }
+            
+            // Set current month
+            filterMonthSelect.value = currentDate.getMonth();
+            
+            updateFilterCalendar();
+        }
+
+        function updateFilterCalendar() {
+            const year = parseInt(filterYearSelect.value);
+            const month = parseInt(filterMonthSelect.value);
+            const firstDay = new Date(year, month, 1);
+            const lastDay = new Date(year, month + 1, 0);
+            const daysInMonth = lastDay.getDate();
+            const startingDay = firstDay.getDay();
+            
+            // Clear existing days
+            while (filterCalendarGrid.children.length > 7) {
+                filterCalendarGrid.removeChild(filterCalendarGrid.lastChild);
+            }
+            
+            // Add empty cells for days before the first day of the month
+            for (let i = 0; i < startingDay; i++) {
+                const emptyCell = document.createElement('div');
+                emptyCell.className = 'calendar-day other-month';
+                filterCalendarGrid.appendChild(emptyCell);
+            }
+            
+            // Add days of the month
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dayCell = document.createElement('div');
+                dayCell.className = 'calendar-day';
+                dayCell.textContent = day;
+                
+                // Check if this is today
+                const today = new Date();
+                if (day === today.getDate() && month === today.getMonth() && year === today.getFullYear()) {
+                    dayCell.classList.add('today');
+                }
+                
+                dayCell.addEventListener('click', () => {
+                    // Remove selected class from all days
+                    document.querySelectorAll('#filterCalendarGrid .calendar-day').forEach(cell => {
+                        cell.classList.remove('selected');
+                    });
+                    
+                    // Add selected class to clicked day
+                    dayCell.classList.add('selected');
+                    
+                    // Update filter input
+                    const selectedDate = new Date(year, month, day);
+                    // Set time to noon to avoid timezone issues
+                    selectedDate.setHours(12, 0, 0, 0);
+                    const formattedDate = `${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/${year}`;
+                    filterDateInput.value = formattedDate;
+                    
+                    // Hide calendar popup
+                    filterCalendarPopup.style.display = 'none';
+                    
+                    // Trigger filter
+                    applyFilters();
+                });
+                
+                filterCalendarGrid.appendChild(dayCell);
+            }
+        }
+
+        // Show/hide filter calendar popup
+        calendarIcon.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            // Position the calendar popup
+            const inputRect = filterDateInput.getBoundingClientRect();
+            filterCalendarPopup.style.top = `${inputRect.bottom + 5}px`;
+            filterCalendarPopup.style.left = `${inputRect.left}px`;
+            
+            filterCalendarPopup.style.display = filterCalendarPopup.style.display === 'none' ? 'block' : 'none';
+        });
+
+        // Hide calendar when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!filterDateInput.contains(e.target) && !filterCalendarPopup.contains(e.target)) {
+                filterCalendarPopup.style.display = 'none';
+            }
+        });
+
+        // Handle month/year changes
+        filterMonthSelect.addEventListener('change', updateFilterCalendar);
+        filterYearSelect.addEventListener('change', updateFilterCalendar);
+
+        // Handle prev/next month buttons
+        filterPrevMonthBtn.addEventListener('click', () => {
+            if (filterMonthSelect.value === '0') {
+                filterMonthSelect.value = '11';
+                filterYearSelect.value = parseInt(filterYearSelect.value) - 1;
+            } else {
+                filterMonthSelect.value = parseInt(filterMonthSelect.value) - 1;
+            }
+            updateFilterCalendar();
+        });
+
+        filterNextMonthBtn.addEventListener('click', () => {
+            if (filterMonthSelect.value === '11') {
+                filterMonthSelect.value = '0';
+                filterYearSelect.value = parseInt(filterYearSelect.value) + 1;
+            } else {
+                filterMonthSelect.value = parseInt(filterMonthSelect.value) + 1;
+            }
+            updateFilterCalendar();
+        });
+
+        // Initialize filter calendar
+        initFilterCalendar();
     }
 
     // Update the renderTasks function to show total count initially
@@ -1697,7 +1926,12 @@ input:focus, select:focus, textarea:focus {
                     <div class="data-cell"><input type="text" class="filter-input"></div>
                     <div class="data-cell"><input type="text" class="filter-input"></div>
                     <div class="data-cell"><input type="text" class="filter-input"></div>
-                    <div class="data-cell"><input type="text" class="filter-input"></div>
+                    <div class="data-cell">
+                        <div class="calendar-wrapper">
+                            <input type="text" class="filter-input" id="filterDateInput">
+                            <i class="bi bi-calendar calendar-icon" style="position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: #000000; cursor: pointer; z-index: 1;"></i>
+                        </div>
+                    </div>
                     <div class="data-cell"><input type="text" class="filter-input"></div>
                     <div class="data-cell"><input type="text" class="filter-input"></div>
                     <div class="data-cell"><input type="text" class="filter-input"></div>
@@ -1745,6 +1979,59 @@ input:focus, select:focus, textarea:focus {
         
         // Setup filters after rendering
         setupFilters();
+
+        // Setup column resizing
+        setupColumnResizing();
+    }
+
+    // Add this new function for column resizing
+    function setupColumnResizing() {
+        const cells = document.querySelectorAll('.data-cell:not(:last-child)');
+        let isResizing = false;
+        let currentCell = null;
+        let startX = 0;
+        let startWidth = 0;
+        let currentColumnIndex = 0;
+
+        cells.forEach(cell => {
+            cell.addEventListener('mousedown', (e) => {
+                if (e.offsetX > cell.offsetWidth - 4) {
+                    isResizing = true;
+                    currentCell = cell;
+                    startX = e.pageX;
+                    startWidth = cell.offsetWidth;
+                    currentColumnIndex = Array.from(cell.parentElement.children).indexOf(cell);
+                    cell.classList.add('resizing');
+                    document.body.style.cursor = 'col-resize';
+                    e.preventDefault();
+                }
+            });
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isResizing) return;
+
+            const width = startWidth + (e.pageX - startX);
+            if (width >= 100) { // Minimum width of 100px
+                // Update the grid template columns
+                const rows = document.querySelectorAll('.data-row');
+                rows.forEach(row => {
+                    const currentTemplate = window.getComputedStyle(row).gridTemplateColumns.split(' ');
+                    currentTemplate[currentColumnIndex] = width + 'px';
+                    row.style.gridTemplateColumns = currentTemplate.join(' ');
+                });
+            }
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isResizing) {
+                isResizing = false;
+                if (currentCell) {
+                    currentCell.classList.remove('resizing');
+                }
+                document.body.style.cursor = '';
+            }
+        });
     }
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -1981,6 +2268,7 @@ input:focus, select:focus, textarea:focus {
             const currentYear = currentDate.getFullYear();
             
             // Populate year select
+            yearSelect.innerHTML = ''; // Clear existing options
             for (let year = currentYear - 5; year <= currentYear + 5; year++) {
                 const option = document.createElement('option');
                 option.value = year;
@@ -2046,6 +2334,8 @@ input:focus, select:focus, textarea:focus {
                     
                     // Update selected date
                     const selectedDate = new Date(year, month, day);
+                    // Set time to noon to avoid timezone issues
+                    selectedDate.setHours(12, 0, 0, 0);
                     hiddenDateInput.value = selectedDate.toISOString().split('T')[0];
                     selectedDateSpan.textContent = `${day.toString().padStart(2, '0')}/${(month + 1).toString().padStart(2, '0')}/${year}`;
                     
@@ -2061,21 +2351,40 @@ input:focus, select:focus, textarea:focus {
         calendarTrigger.addEventListener('click', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            calendarPopup.style.display = calendarPopup.style.display === 'none' ? 'block' : 'none';
-        });
-
-        // Hide calendar when clicking outside
-        document.addEventListener('click', (e) => {
-            if (!calendarTrigger.contains(e.target) && !calendarPopup.contains(e.target)) {
+            
+            // Position the calendar popup
+            const inputRect = calendarTrigger.getBoundingClientRect();
+            calendarPopup.style.position = 'fixed';
+            calendarPopup.style.top = `${inputRect.bottom + window.scrollY + 5}px`;
+            calendarPopup.style.left = `${inputRect.left + window.scrollX}px`;
+            
+            // Toggle calendar visibility
+            if (calendarPopup.style.display === 'none' || !calendarPopup.style.display) {
+                calendarPopup.style.display = 'block';
+                updateCalendar(); // Refresh calendar when opening
+            } else {
                 calendarPopup.style.display = 'none';
             }
         });
 
-        // Handle month/year changes
+        // Hide calendar when clicking outside
+        document.addEventListener('click', (e) => {
+            const isCalendarTrigger = calendarTrigger.contains(e.target);
+            const isCalendarPopup = calendarPopup.contains(e.target);
+            
+            if (!isCalendarTrigger && !isCalendarPopup) {
+                calendarPopup.style.display = 'none';
+            }
+        });
+
+        // Initialize calendar when the page loads
+        initCalendar();
+
+        // Add event listeners for month/year changes
         monthSelect.addEventListener('change', updateCalendar);
         yearSelect.addEventListener('change', updateCalendar);
-
-        // Handle prev/next month buttons
+        
+        // Add event listeners for prev/next month buttons
         prevMonthBtn.addEventListener('click', () => {
             if (monthSelect.value === '0') {
                 monthSelect.value = '11';
@@ -2095,9 +2404,6 @@ input:focus, select:focus, textarea:focus {
             }
             updateCalendar();
         });
-
-        // Initialize calendar
-        initCalendar();
 
         // Time picker functionality
         const timeInput = document.getElementById('timeInput');
